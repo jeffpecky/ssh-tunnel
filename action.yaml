@@ -1,5 +1,5 @@
-name: SSH tunnel over ngrok
-description: Establishes an ngrok tunnel to the GitHub Action runner for debugging
+name: SSH tunnel over OutRay
+description: Establishes an OutRay tunnel to the GitHub Action runner for debugging
 
 branding:
   icon: minimize-2
@@ -17,18 +17,18 @@ inputs:
   ssh_public_key:
     description: Your SSH public key
     required: true
-  ngrok_token:
-    description: Your ngrok auth token
+  outray_api_key:
+    description: Your OutRay API key (from dashboard settings)
     required: true
 
 runs:
   using: composite
   steps:
-    - name: Download ngrok
-      run: curl -sO https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-amd64.tgz
-      shell: bash
-    - name: Untar ngrok
-      run: tar xfz ngrok-v3-stable-linux-amd64.tgz
+    - name: Download OutRay
+      run: |
+        curl -L -o outray.tar.gz https://github.com/outray-tunnel/outray/releases/latest/download/outray-linux-x64.tar.gz
+        tar xfz outray.tar.gz
+        chmod +x outray
       shell: bash
     - name: Add ~/.ssh directory
       run: mkdir -p ~/.ssh
@@ -41,15 +41,12 @@ runs:
       shell: bash
     - run: chmod 600 ~/.ssh/authorized_keys
       shell: bash
-    - name: Set ngrok auth token
-      run: ./ngrok authtoken ${{ inputs.ngrok_token }}
+    - name: Debug message
+      run: echo "Starting OutRay tunnel..."
+      shell: bash
+    - name: Setup OutRay TCP tunnel
+      run: timeout ${{ inputs.timeout }} ./outray tcp ${{ inputs.port }} --key ${{ inputs.outray_api_key }} &
       shell: bash
     - name: Debug message
-      run: echo "Starting ngrok tunnel..."
-      shell: bash
-    - name: Setup ngrok tunnel
-      run: timeout ${{ inputs.timeout }} ./ngrok tcp ${{ inputs.port }} &
-      shell: bash
-    - name: Debug message
-      run: echo "Tunnel started."
+      run: echo "Tunnel started. Check OutRay dashboard for public URL."
       shell: bash
