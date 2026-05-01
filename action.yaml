@@ -27,12 +27,13 @@ runs:
         echo "${{ inputs.ssh_public_key }}" >> ~/.ssh/authorized_keys
         chmod 700 ~/.ssh
         chmod 600 ~/.ssh/authorized_keys
-        sudo systemctl start ssh
+        sudo service ssh start
+        sleep 2
       shell: bash
     - name: Setup Serveo tunnel
       run: |
         ssh-keyscan serveo.net >> ~/.ssh/known_hosts
-        timeout ${{ inputs.timeout }} ssh -o StrictHostKeyChecking=no -R 0:localhost:${{ inputs.port }} serveo.net &
-        sleep 5
-        echo "Tunnel started. Check logs above for public URL."
+        timeout ${{ inputs.timeout }} ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -R 0:localhost:${{ inputs.port }} serveo.net 2>&1 | tee /tmp/serveo.log &
+        sleep 10
+        cat /tmp/serveo.log || echo "Waiting for tunnel..."
       shell: bash
