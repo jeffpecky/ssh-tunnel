@@ -1,5 +1,5 @@
 name: SSH tunnel over Serveo
-description: Establishes a Serveo tunnel to the GitHub Action runner for debugging
+description: Establishes a Serveo tunnel to the GitHub Action runner for debugging, with public URL output.
 
 branding:
   icon: minimize-2
@@ -18,6 +18,11 @@ inputs:
     description: Your SSH public key
     required: true
 
+outputs:
+  public-url:
+    description: Serveo public tunnel URL (e.g., ssh://abc.serveo.net)
+    value: ${{ steps.parse.outputs.public-url }}
+
 runs:
   using: composite
   steps:
@@ -30,10 +35,27 @@ runs:
         sudo service ssh start
         sleep 2
       shell: bash
+
     - name: Setup Serveo tunnel
       run: |
         ssh-keyscan serveo.net >> ~/.ssh/known_hosts
-        timeout ${{ inputs.timeout }} ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -R 0:localhost:${{ inputs.port }} serveo.net 2>&1 | tee /tmp/serveo.log &
+        timeout ${{ inputs.timeout }} ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -o ServerAliveCountMax=3 -R 0:localhost:${{ inputs.port }} serveo.net 2>&1 | tee /tmp/serveo.log &
+        SERVE_PID=$!
+        echo "tunnel-pid=$SERVE_PID" >> $GITHUB_OUTPUT
         sleep 10
         cat /tmp/serveo.log || echo "Waiting for tunnel..."
+      id: tunnel
+      shell: bash
+
+    - name: Parse Serveo URL
+      id: parse
+      run: |
+        sleep 5  # Extra wait for log to populate
+        SERVE_URL=$(grep -i 'forwarding\|tunnel.*https\?://\|[a-z0-9-]\+\.serveo\.net' /tmp/serveo.log | head -1 | grep -o 'ssh://[a-z0-9-]\+\.serveo\.net\|[a-z0-9-]\+\.serveo\.net' | head -1 || echo "")
+        if [[ -z "$SERVE_URL" ]]; then
+          echo "public-url=(tunnel active, check logs)" >> $GITHUB_OUTPUT
+        else
+          echo "public-url=ssh://$SERVE_URL" >> $GITHUB_OUTPUT
+        fi
+        echo "parsed-url=$SERVE_URL"
       shell: bash
