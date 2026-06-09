@@ -9,7 +9,7 @@ inputs:
   timeout:
     description: Tunnel timeout
     required: true
-    default: 1h
+    default: 6h
   port:
     description: Local SSH port to forward
     required: true
