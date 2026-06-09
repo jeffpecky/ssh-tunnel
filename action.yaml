@@ -25,6 +25,12 @@ outputs:
   public-url:
     description: OutRay public tunnel endpoint (e.g., tcp.outray.app:20123)
     value: ${{ steps.outray.outputs.public-url }}
+  tunnel-host:
+    description: OutRay tunnel hostname
+    value: ${{ steps.outray.outputs.tunnel-host }}
+  tunnel-port:
+    description: OutRay tunnel port number
+    value: ${{ steps.outray.outputs.tunnel-port }}
 
 runs:
   using: composite
@@ -69,18 +75,26 @@ runs:
         echo "outray-pid=$OUTRAY_PID" >> $GITHUB_OUTPUT
         sleep 8
 
-        # Parse the tunnel endpoint from output
+        # Print logs for visibility
         cat /tmp/outray.log
-        OUTRAY_URL=$(grep -oP 'tcp://\S+' /tmp/outray.log | head -1 || echo "")
-        if [[ -z "$OUTRAY_URL" ]]; then
-          # Try alternate output format
-          OUTRAY_URL=$(grep -oP '(tcp\.outray\.\S+:\d+|\S+outray\S+:\d+)' /tmp/outray.log | head -1 || echo "")
-        fi
-        if [[ -n "$OUTRAY_URL" ]]; then
-          echo "public-url=$OUTRAY_URL" >> $GITHUB_OUTPUT
-          echo "✅ OutRay tunnel ready: $OUTRAY_URL"
+
+        # Parse the host:port from "TCP Tunnel ready: tcp://<host>:<port>"
+        RAW_URL=$(grep "TCP Tunnel ready" /tmp/outray.log | grep -oP 'tcp://\K.+')
+        if [[ -n "$RAW_URL" ]]; then
+          HOST=$(echo "$RAW_URL" | grep -oP '^[^:]+')
+          PORT=$(echo "$RAW_URL" | grep -oP '\d+$')
+          echo "public-url=$RAW_URL" >> $GITHUB_OUTPUT
+          echo "tunnel-host=$HOST" >> $GITHUB_OUTPUT
+          echo "tunnel-port=$PORT" >> $GITHUB_OUTPUT
+          echo "✅ OutRay tunnel ready: tcp://$RAW_URL"
+          echo "   SSH: ssh runner@$HOST -p $PORT"
         else
-          echo "public-url=(tunnel active, check logs)" >> $GITHUB_OUTPUT
-          echo "⚠️ Could not parse tunnel URL from logs"
+          RAW_URL=$(grep -oP '\S+\.outray\.app:\d+' /tmp/outray.log | head -1)
+          if [[ -n "$RAW_URL" ]]; then
+            echo "public-url=$RAW_URL" >> $GITHUB_OUTPUT
+            echo "✅ OutRay tunnel active: $RAW_URL"
+          else
+            echo "public-url=(tunnel active, check logs)" >> $GITHUB_OUTPUT
+          fi
         fi
       shell: bash
