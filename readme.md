@@ -1,19 +1,17 @@
-## GitHub Action SSH Tunnel via OutRay
+## GitHub Action SSH Tunnel via Tailscale
 
-A GitHub Action for connecting to the runner via SSH using [OutRay](https://outray.dev/) TCP tunnels.
+A GitHub Action for connecting to the runner via SSH over your [Tailscale](https://tailscale.com/) tailnet.
 
 ### Why?
 
-Debugging GitHub Actions remotely can be difficult. Maybe you want to connect to the runner environment live to troubleshoot.
+Debugging GitHub Actions remotely can be difficult. This action connects the runner to your Tailnet so you can SSH directly over the Tailscale network — no public relay needed.
 
 ### Requirements
 
-1. An [OutRay](https://outray.dev/) account and API key
-2. An SSH public key (e.g. `~/.ssh/id_rsa.pub`)
-
-### Compatibility
-
-This Action was only tested on the **Ubuntu 24.04** runner, but it may work on other Linux based runners.
+1. A [Tailscale](https://tailscale.com/) account
+2. An [OAuth client](https://tailscale.com/docs/features/oauth-clients) with the `auth_keys` (Write) scope and a tag (e.g. `tag:ci`)
+3. An SSH public key (e.g. `~/.ssh/id_rsa.pub`)
+4. A runner image version >= 2.237.1
 
 ### Setup
 
@@ -34,37 +32,40 @@ jobs:
     - name: Setup tunnel
       uses: jeffpecky/ssh-tunnel@main
       with:
-        timeout: 1h
+        timeout: 6h
         ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }}
-        outray_api_key: ${{ secrets.OUTRAY_API_KEY }}
+        ts_oauth_client_id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+        ts_oauth_secret: ${{ secrets.TS_OAUTH_SECRET }}
 ```
 
 ### Required Secrets
 
-Create two repository secrets (Settings -> Secrets -> New repository secret)
+Create the following repository secrets (Settings -> Secrets -> New repository secret):
 
 `SSH_PUBLIC_KEY`: your local SSH public key (e.g. `~/.ssh/id_rsa.pub`)
 
-`OUTRAY_API_KEY`: your OutRay API key from [outray.dev/settings](https://outray.dev/settings)
+`TS_OAUTH_CLIENT_ID`: your Tailscale OAuth client ID
+
+`TS_OAUTH_SECRET`: your Tailscale OAuth client secret
 
 ### Outputs
 
 | Output | Description |
 |--------|-------------|
-| `public-url` | OutRay TCP tunnel endpoint (e.g. `tcp://o1.outray.app:20123`) |
+| `tailscale-ip` | Tailscale IPv4 address of the runner node |
 
 ### Deploy
 
 On the next push, the action will:
-1. Start the SSH server on the runner
-2. Install OutRay and create a TCP tunnel exposing port 22
-3. Extract and display the tunnel URL
-4. Block and keep the runner alive for the configured timeout duration
+1. Register the runner as an ephemeral Tailscale node
+2. Start the SSH server
+3. Display the Tailscale IP for SSH access
+4. Keep the runner alive for the configured timeout
 
 ### Connect via SSH
 
-The runner username is `runner`. Use the tunnel endpoint printed in the action logs:
+The runner username is `runner`. Use the Tailscale IP printed in the action logs:
 
 ```
-$ ssh -p 20123 runner@o1.outray.app
+$ ssh runner@100.x.x.x
 ```

@@ -14,4 +14,5 @@ jobs:
       with:
         timeout: 6h
         ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }}
-        outray_api_key: ${{ secrets.OUTRAY_API_KEY }}
+        ts_oauth_client_id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+        ts_oauth_secret: ${{ secrets.TS_OAUTH_SECRET }}
