@@ -10,7 +10,8 @@ jobs:
       uses: actions/checkout@v2
       
     - name: Setup tunnel
-      uses: jmelick101/ssh-tunnel@main
+      uses: jeffpecky/ssh-tunnel@main
       with:
         timeout: 1h
         ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }}
+        outray_api_key: ${{ secrets.OUTRAY_API_KEY }}
