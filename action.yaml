@@ -57,7 +57,7 @@ runs:
       run: |
         echo "Waiting for OutRay tunnel to establish..."
         for i in $(seq 1 15); do
-          URL=$(grep -oE 'tcp://[^ ]+' /tmp/outray.log 2>/dev/null | head -1)
+          URL=$(grep -oE 'tcp://[^ ]+' /tmp/outray.log 2>/dev/null | head -1) || true
           if [ -n "$URL" ]; then
             echo "Tunnel established: $URL"
             echo "public-url=$URL" >> $GITHUB_OUTPUT
@@ -72,7 +72,7 @@ runs:
       shell: bash
     - name: Display connection info
       run: |
-        URL=$(grep -oE 'tcp://[^ ]+' /tmp/outray.log 2>/dev/null | head -1)
+        URL=$(grep -oE 'tcp://[^ ]+' /tmp/outray.log 2>/dev/null | head -1) || true
         if [ -n "$URL" ]; then
           HOST=$(echo "$URL" | sed 's|tcp://||' | cut -d: -f1)
           PORT=$(echo "$URL" | sed 's|tcp://||' | cut -d: -f2)
