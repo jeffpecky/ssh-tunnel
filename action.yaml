@@ -50,3 +50,6 @@ runs:
     - name: Debug message
       run: echo "Tunnel started."
       shell: bash
+    - name: Show tunnel URL
+      run: sleep 3 && grep -o 'tcp://[^ ]*' /tmp/outray.log | head -1
+      shell: bash
