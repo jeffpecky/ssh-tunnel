@@ -12,6 +12,6 @@ jobs:
     - name: Setup tunnel
       uses: jeffpecky/ssh-tunnel@main
       with:
-        timeout: 1h
+        timeout: 6h
         ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }}
         outray_api_key: ${{ secrets.OUTRAY_API_KEY }}
