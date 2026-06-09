@@ -15,7 +15,3 @@ jobs:
         timeout: 1h
         ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }}
         outray_api_key: ${{ secrets.OUTRAY_API_KEY }}
-
-    - name: Keep runner alive
-      run: sleep 1h
-      shell: bash

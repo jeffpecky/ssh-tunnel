@@ -30,9 +30,9 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v2
-      
+
     - name: Setup tunnel
-      uses: coopergrace925/ssh-tunnel@main
+      uses: jeffpecky/ssh-tunnel@main
       with:
         timeout: 1h
         ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }}
@@ -51,19 +51,20 @@ Create two repository secrets (Settings -> Secrets -> New repository secret)
 
 | Output | Description |
 |--------|-------------|
-| `public-url` | OutRay TCP tunnel endpoint (e.g. `tcp.outray.app:20123`) |
+| `public-url` | OutRay TCP tunnel endpoint (e.g. `tcp://o1.outray.app:20123`) |
 
 ### Deploy
 
 On the next push, the action will:
 1. Start the SSH server on the runner
 2. Install OutRay and create a TCP tunnel exposing port 22
-3. Output the public tunnel endpoint
+3. Extract and display the tunnel URL
+4. Block and keep the runner alive for the configured timeout duration
 
 ### Connect via SSH
 
-The runner username is `runner`. Connect using the tunnel endpoint from the action output:
+The runner username is `runner`. Use the tunnel endpoint printed in the action logs:
 
 ```
-$ ssh runner@tcp.outray.app -p 20123
+$ ssh -p 20123 runner@o1.outray.app
 ```

@@ -18,8 +18,12 @@ inputs:
     description: Your SSH public key
     required: true
   outray_api_key:
-    description: Your OutRay API token
+    description: Your OutRay API key
     required: true
+
+outputs:
+  public-url:
+    description: OutRay TCP tunnel endpoint (e.g. tcp://o1.outray.app:20123)
 
 runs:
   using: composite
@@ -27,7 +31,8 @@ runs:
     - name: Add SSH public key
       run: mkdir -p ~/.ssh && echo "${{ inputs.ssh_public_key }}" >> ~/.ssh/authorized_keys
       shell: bash
-    - run: chmod 755 ~ && chmod 600 ~/.ssh/authorized_keys
+    - name: Fix permissions
+      run: chmod 755 ~ && chmod 600 ~/.ssh/authorized_keys
       shell: bash
     - name: Start SSH
       run: sudo service ssh start && sleep 2
@@ -45,11 +50,38 @@ runs:
         fi
       shell: bash
     - name: Start OutRay tunnel
-      run: timeout ${{ inputs.timeout }} outray tcp ${{ inputs.port }} --key ${{ inputs.outray_api_key }} --no-logs > /tmp/outray.log 2>&1 &
+      run: outray tcp ${{ inputs.port }} --key ${{ inputs.outray_api_key }} > /tmp/outray.log 2>&1 &
       shell: bash
-    - name: Debug message
-      run: echo "Tunnel started."
+    - name: Wait for tunnel URL
+      id: tunnel
+      run: |
+        echo "Waiting for OutRay tunnel to establish..."
+        for i in $(seq 1 15); do
+          URL=$(grep -oE 'tcp://[^ ]+' /tmp/outray.log 2>/dev/null | head -1)
+          if [ -n "$URL" ]; then
+            echo "Tunnel established: $URL"
+            echo "public-url=$URL" >> $GITHUB_OUTPUT
+            break
+          fi
+          sleep 1
+        done
+        if [ -z "$URL" ]; then
+          echo "Warning: Could not detect tunnel URL. Log contents:"
+          cat /tmp/outray.log
+        fi
       shell: bash
-    - name: Show tunnel URL
-      run: sleep 3 && grep -o 'tcp://[^ ]*' /tmp/outray.log | head -1
+    - name: Display connection info
+      run: |
+        URL=$(grep -oE 'tcp://[^ ]+' /tmp/outray.log 2>/dev/null | head -1)
+        if [ -n "$URL" ]; then
+          HOST=$(echo "$URL" | sed 's|tcp://||' | cut -d: -f1)
+          PORT=$(echo "$URL" | sed 's|tcp://||' | cut -d: -f2)
+          echo "========================================"
+          echo "  SSH Tunnel Active!"
+          echo "  Connect using: ssh -p $PORT runner@$HOST"
+          echo "========================================"
+        fi
+      shell: bash
+    - name: Keep runner alive
+      run: sleep ${{ inputs.timeout }}
       shell: bash
