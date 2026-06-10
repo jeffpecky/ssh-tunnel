@@ -22,7 +22,7 @@ inputs:
   ts_tags:
     description: Tailscale tags for the CI node
     required: false
-    default: tag:ci
+    default: tag:tunnel
 
 outputs:
   tailscale-ip:
